@@ -47,6 +47,7 @@ public:
         LatEID,
         LitEID,
         HrvEID,
+        BelEID,
     };
 
     virtual ~ElectronicID() = default;
@@ -78,6 +79,7 @@ public:
                                          const HashAlgorithm hashAlgo) const = 0;
 
     // General functions.
+    virtual bool allowsUsingLettersInPin() const { return false; }
     virtual std::string name() const = 0;
     virtual Type type() const = 0;
 

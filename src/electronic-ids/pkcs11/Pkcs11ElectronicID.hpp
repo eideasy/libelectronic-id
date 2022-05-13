@@ -34,17 +34,19 @@ enum class Pkcs11ElectronicIDType {
     LitEIDv2,
     LitEIDv3,
     HrvEID,
+    BelEID,
 };
 
 struct Pkcs11ElectronicIDModule
 {
-    std::string name;
-    ElectronicID::Type type;
-    std::string path;
+    const std::string name;
+    const ElectronicID::Type type;
+    const std::string path;
 
-    JsonWebSignatureAlgorithm authSignatureAlgorithm;
-    std::set<SignatureAlgorithm> supportedSigningAlgorithms;
-    int8_t retryMax;
+    const JsonWebSignatureAlgorithm authSignatureAlgorithm;
+    const std::set<SignatureAlgorithm> supportedSigningAlgorithms;
+    const int8_t retryMax;
+    const bool allowsUsingLettersInPin;
 };
 
 class Pkcs11ElectronicID : public ElectronicID
@@ -53,6 +55,8 @@ public:
     Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr card, Pkcs11ElectronicIDType type);
 
 private:
+    bool allowsUsingLettersInPin() const override { return module.allowsUsingLettersInPin; }
+
     pcsc_cpp::byte_vector getCertificate(const CertificateType type) const override;
 
     JsonWebSignatureAlgorithm authSignatureAlgorithm() const override

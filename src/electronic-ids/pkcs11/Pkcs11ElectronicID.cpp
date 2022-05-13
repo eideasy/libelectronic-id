@@ -41,13 +41,23 @@ namespace
 {
 
 #ifdef _WIN32
-std::wstring programFilesPath()
+std::wstring getKnownFolderPath(REFKNOWNFOLDERID knownFolderId)
 {
-    PWSTR programFiles = 0;
-    SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &programFiles);
-    std::wstring path = programFiles;
-    CoTaskMemFree(programFiles);
+    PWSTR knownFolder = 0;
+    SHGetKnownFolderPath(knownFolderId, 0, nullptr, &knownFolder);
+    std::wstring path = knownFolder;
+    CoTaskMemFree(knownFolder);
     return path;
+}
+
+inline std::wstring programFilesPath()
+{
+    return getKnownFolderPath(FOLDERID_ProgramFiles);
+}
+
+inline std::wstring system32Path()
+{
+    return getKnownFolderPath(FOLDERID_System);
 }
 
 std::string wstringToString(std::wstring s)
@@ -55,7 +65,7 @@ std::string wstringToString(std::wstring s)
     int len =
         WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), nullptr, 0, nullptr, nullptr);
     std::string out(size_t(len), 0);
-    WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), &out[0], len, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, s.data(), int(s.size()), out.data(), len, nullptr, nullptr);
     return out;
 }
 #endif
@@ -90,6 +100,17 @@ std::string croatianPkcs11ModulePath()
 #endif
 }
 
+std::string belgianPkcs11ModulePath()
+{
+#ifdef _WIN32
+    return wstringToString(system32Path() + L"\\beidpkcs11.dll"s);
+#elif defined __APPLE__
+    return "/Library/Belgium Identity Card/Pkcs11/beid-pkcs11.bundle/Contents/MacOS/libbeidpkcs11.dylib"s;
+#else // Linux
+    return "/usr/lib/x86_64-linux-gnu/libbeidpkcs11.so.0"s;
+#endif
+}
+
 const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11ElectronicIDModule>
     SUPPORTED_PKCS11_MODULES = {
         // EstEIDIDEMIAV1 configuration is here only for testing,
@@ -103,6 +124,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::JsonWebSignatureAlgorithm::ES384, // authSignatureAlgorithm
              electronic_id::ELLIPTIC_CURVE_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              3,
+             false,
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEIDv2,
          {
@@ -113,6 +135,7 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              -1,
+             false,
          }},
         {electronic_id::Pkcs11ElectronicIDType::LitEIDv3,
          {
@@ -123,15 +146,30 @@ const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11Elect
              electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
              electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
              -1,
+             false,
          }},
         {electronic_id::Pkcs11ElectronicIDType::HrvEID,
-         {"Croatian eID (PKCS#11)"s, // name
-          electronic_id::ElectronicID::Type::HrvEID, // type
-          croatianPkcs11ModulePath(), // path
+         {
+             "Croatian eID (PKCS#11)"s, // name
+             electronic_id::ElectronicID::Type::HrvEID, // type
+             croatianPkcs11ModulePath(), // path
 
-          electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
-          electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
-          3}},
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             3,
+             true,
+         }},
+        {electronic_id::Pkcs11ElectronicIDType::BelEID,
+         {
+             "Belgian eID (PKCS#11)"s, // name
+             electronic_id::ElectronicID::Type::BelEID, // type
+             belgianPkcs11ModulePath(), // path
+
+             electronic_id::JsonWebSignatureAlgorithm::RS256, // authSignatureAlgorithm
+             electronic_id::RSA_SIGNATURE_ALGOS(), // supportedSigningAlgorithms
+             3,
+             true,
+         }},
 };
 
 const electronic_id::Pkcs11ElectronicIDModule&
@@ -163,7 +201,7 @@ Pkcs11ElectronicID::Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr _card,
         if (certType.isAuthentication()) {
             authToken = token;
             seenAuthToken = true;
-        } else {
+        } else if (certType.isSigning()) {
             signingToken = token;
             seenSigningToken = true;
         }
