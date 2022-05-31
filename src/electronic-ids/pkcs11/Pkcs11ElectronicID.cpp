@@ -108,7 +108,7 @@ std::string belgianPkcs11ModulePath()
 #else // Linux
     return "/usr/lib/x86_64-linux-gnu/libbeidpkcs11.so.0"s;
 #endif
-    }
+}
 
 const std::map<electronic_id::Pkcs11ElectronicIDType, electronic_id::Pkcs11ElectronicIDModule>
     SUPPORTED_PKCS11_MODULES = {
