@@ -29,63 +29,64 @@
 namespace electronic_id
 {
 
-enum class Pkcs11ElectronicIDType {
-    EstEIDIDEMIAV1,
-    LitEIDv2,
-    LitEIDv3,
-    HrvEID,
-};
+    enum class Pkcs11ElectronicIDType {
+        EstEIDIDEMIAV1,
+        LitEIDv2,
+        LitEIDv3,
+        HrvEID,
+        BelEID,
+    };
 
-struct Pkcs11ElectronicIDModule
-{
-    const std::string name;
-    const ElectronicID::Type type;
-    const std::string path;
-
-    const JsonWebSignatureAlgorithm authSignatureAlgorithm;
-    const std::set<SignatureAlgorithm> supportedSigningAlgorithms;
-    const int8_t retryMax;
-    const bool allowsUsingLettersInPin;
-};
-
-class Pkcs11ElectronicID : public ElectronicID
-{
-public:
-    Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr card, Pkcs11ElectronicIDType type);
-
-private:
-    bool allowsUsingLettersInPin() const override { return module.allowsUsingLettersInPin; }
-
-    pcsc_cpp::byte_vector getCertificate(const CertificateType type) const override;
-
-    JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
+    struct Pkcs11ElectronicIDModule
     {
-        return module.authSignatureAlgorithm;
-    }
-    PinMinMaxLength authPinMinMaxLength() const override;
+        const std::string name;
+        const ElectronicID::Type type;
+        const std::string path;
 
-    PinRetriesRemainingAndMax authPinRetriesLeft() const override;
-    pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
-                                          const pcsc_cpp::byte_vector& hash) const override;
+        const JsonWebSignatureAlgorithm authSignatureAlgorithm;
+        const std::set<SignatureAlgorithm> supportedSigningAlgorithms;
+        const int8_t retryMax;
+        const bool allowsUsingLettersInPin;
+    };
 
-    const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
+    class Pkcs11ElectronicID : public ElectronicID
     {
-        return module.supportedSigningAlgorithms;
-    }
-    PinMinMaxLength signingPinMinMaxLength() const override;
+    public:
+        Pkcs11ElectronicID(pcsc_cpp::SmartCard::ptr card, Pkcs11ElectronicIDType type);
 
-    PinRetriesRemainingAndMax signingPinRetriesLeft() const override;
-    Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
-                                 const pcsc_cpp::byte_vector& hash,
-                                 const HashAlgorithm hashAlgo) const override;
+    private:
+        bool allowsUsingLettersInPin() const override { return module.allowsUsingLettersInPin; }
 
-    std::string name() const override { return module.name; }
-    Type type() const override { return module.type; }
+        pcsc_cpp::byte_vector getCertificate(const CertificateType type) const override;
 
-    const Pkcs11ElectronicIDModule& module;
-    PKCS11CardManager manager;
-    PKCS11CardManager::Token authToken;
-    PKCS11CardManager::Token signingToken;
-};
+        JsonWebSignatureAlgorithm authSignatureAlgorithm() const override
+        {
+            return module.authSignatureAlgorithm;
+        }
+        PinMinMaxLength authPinMinMaxLength() const override;
+
+        PinRetriesRemainingAndMax authPinRetriesLeft() const override;
+        pcsc_cpp::byte_vector signWithAuthKey(const pcsc_cpp::byte_vector& pin,
+                                              const pcsc_cpp::byte_vector& hash) const override;
+
+        const std::set<SignatureAlgorithm>& supportedSigningAlgorithms() const override
+        {
+            return module.supportedSigningAlgorithms;
+        }
+        PinMinMaxLength signingPinMinMaxLength() const override;
+
+        PinRetriesRemainingAndMax signingPinRetriesLeft() const override;
+        Signature signWithSigningKey(const pcsc_cpp::byte_vector& pin,
+                                     const pcsc_cpp::byte_vector& hash,
+                                     const HashAlgorithm hashAlgo) const override;
+
+        std::string name() const override { return module.name; }
+        Type type() const override { return module.type; }
+
+        const Pkcs11ElectronicIDModule& module;
+        PKCS11CardManager manager;
+        PKCS11CardManager::Token authToken;
+        PKCS11CardManager::Token signingToken;
+    };
 
 } // namespace electronic_id
